@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 
-from lamoda.services import get_products_from_page, get_all_products_from
+from lamoda.schemas import Category
+from lamoda.services import get_all_products_from, get_cat_names, get_detailed_product, get_url
 
-import time
+from typing import Dict, List
 
 router = APIRouter(
     prefix='/lamoda',
@@ -10,24 +11,20 @@ router = APIRouter(
 )
 
 
-@router.get("/get_one_page_products")
-async def hello(url: str):
-    start_time = time.time()
-    data = await get_products_from_page(url)
-    end_time = time.time()
-    execution_time = end_time - start_time  # вычисляем время выполнения
-    print(execution_time)
-    quantity = len(data)
-    return {
-        "data": data,
-        "quantity": quantity
-    }
+@router.get('/get_categories_names', response_model=Dict[str, List[Category]])
+async def get_categories():
+    data = await get_cat_names()
+    return data
+
+
+@router.get("/get_info_from_product", response_model=Dict[str, Dict])
+async def get_product(url: str):
+    data = await get_detailed_product(url)
+    return {"data": data}
 
 
 @router.get("/get_all_products_from_category")
-def get_all_prods(url: str):
-    products = get_all_products_from(url)
-    return {
-        "data":
-            products
-    }
+async def get_all_prods(sex: str, category: str):
+    url = await get_url(sex, category)
+    products = await get_all_products_from(url)
+    return {"data": products}
