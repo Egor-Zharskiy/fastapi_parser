@@ -145,7 +145,7 @@ def parse_brands(url: str) -> list:
     brands = []
     for line in data['data']:
         for brand in line['brands']:
-            brands.append({'name': brand['name'], 'url': brand['url'], "sex": "man"})
+            brands.append({'name': brand['name'], 'url': brand['url']})
 
     return brands
 
