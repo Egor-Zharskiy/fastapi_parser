@@ -10,6 +10,7 @@ beautifulsoup4 = "*"
 pydantic = "*"
 requests = "*"
 aiohttp = "*"
+dotenv = "*"
 
 [dev-packages]
 
