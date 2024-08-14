@@ -1,4 +1,5 @@
 import re
+import json
 from typing import Dict, List
 
 from bs4 import BeautifulSoup
@@ -30,12 +31,19 @@ async def get_products_from_page(url) -> list:
     return links
 
 
+async def generate_next_page_url(base_url: str, current_page: int) -> str:
+    if "?" in base_url:
+        return f"{base_url}&page={current_page + 1}"
+    else:
+        return f"{base_url}?page={current_page + 1}"
+
+
 async def get_all_products_from(url):
     product_links = []
     page = 1
 
     while True:
-        curr_page = url + f"&page={page}"
+        curr_page = await generate_next_page_url(url, page)
         page_products = await get_products_from_page(curr_page)
         if len(page_products) != 0:
             product_links.extend(page_products)
@@ -45,7 +53,6 @@ async def get_all_products_from(url):
 
     tasks = [get_detailed_product(f"https://lamoda.by{link}") for link in product_links]
     all_products = await asyncio.gather(*tasks)
-    # print(all_products)
     return all_products
 
 
@@ -124,3 +131,21 @@ async def get_url(sex: str, category: str):
         if el.name.lower() == category.lower():
             return f"https://lamoda.by{el.url}"
     raise HTTPException(status_code=404, detail="URL not found")
+
+
+def parse_brands(url: str) -> list:
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                      ' Chrome/58.0.3029.110 Safari/537.3'
+    }
+    response = requests.get(url, headers=headers)
+    text = response.text.split('payload:')[2].split(""",
+            settings:""")[0]
+    data = json.loads(text)
+    brands = []
+    for line in data['data']:
+        for brand in line['brands']:
+            brands.append({'name': brand['name'], 'url': brand['url'], "sex": "man"})
+
+    return brands
+
