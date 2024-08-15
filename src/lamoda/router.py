@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 
 from lamoda.schemas import Category
-from lamoda.services import get_all_products_from, get_cat_names, get_detailed_product, get_url, get_brands_service, \
-    get_brand_url
+from lamoda.services import get_cat_names, get_url, get_brands_service, get_brand_url
 
 from typing import Dict, List, Optional
+
+from lamoda.parser import get_all_products_from, get_detailed_product
 
 router = APIRouter(
     prefix='/lamoda',

@@ -6,8 +6,3 @@ app = FastAPI(
 )
 
 app.include_router(lamoda_router)
-
-
-@app.get('/')
-async def main_route():
-    return {"data": "Hello from new lamoda!"}
