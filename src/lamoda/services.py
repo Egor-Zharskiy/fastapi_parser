@@ -1,15 +1,15 @@
-import re
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional, Union
 
 from bs4 import BeautifulSoup
 import requests
 import asyncio
 import aiohttp
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
-from database import db
-from lamoda.schemas import Category
+from database import MongoConnection
+from lamoda.constants import SexEnum
+from lamoda.schemas import Category, Brand
 
 
 async def get_products_from_page(url) -> list:
@@ -40,7 +40,7 @@ async def generate_next_page_url(base_url: str, current_page: int) -> str:
 
 async def get_all_products_from(url):
     product_links = []
-    page = 1
+    page = 0
 
     while True:
         curr_page = await generate_next_page_url(url, page)
@@ -101,7 +101,8 @@ async def get_detailed_product(url) -> dict:
 
 
 async def get_categories_service() -> list:
-    raw_data = db.categories.find()
+    db = MongoConnection()
+    raw_data = db.find_data('categories')
     categories = []
     for data in raw_data:
         try:
@@ -135,17 +136,51 @@ async def get_url(sex: str, category: str):
 
 def parse_brands(url: str) -> list:
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
-                      ' Chrome/58.0.3029.110 Safari/537.3'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                      '(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
     }
+
     response = requests.get(url, headers=headers)
-    text = response.text.split('payload:')[2].split(""",
-            settings:""")[0]
+
+    text = response.text.split('payload:')[2].split(""",\n        settings:""")[0]
     data = json.loads(text)
     brands = []
     for line in data['data']:
         for brand in line['brands']:
-            brands.append({'name': brand['name'], 'url': brand['url']})
+            brands.append({'name': brand['name'].lower(), 'url': brand['url'], "sex": "kids"})
 
     return brands
 
+
+async def get_brands_service(gender: Optional[str] = None) -> Optional[Union[list, Exception]]:
+    brands = []
+    db = MongoConnection()
+    raw_data = db.find_data('brands', None if not gender else {"sex": get_gender(gender)})
+
+    try:
+        for brand in raw_data:
+            brands.append(Brand(**brand))
+    except Exception as e:
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return brands
+
+
+async def get_brand_url(gender: str, brand_name: str) -> Union[str, Exception]:
+    db = MongoConnection()
+    try:
+        raw_data = db.find_one('brands', {"sex": gender, "name": brand_name.lower()})
+        brand = Brand(**raw_data)
+
+    except TypeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='invalid data sent to server.')
+
+    return f'https://lamoda.by{brand.url}'
+
+
+def get_gender(gender: str):
+    try:
+        return SexEnum(gender).value
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Incorrect gender: available: man, woman, kids")

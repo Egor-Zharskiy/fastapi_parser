@@ -14,3 +14,9 @@ class Category(BaseModel):
     url: str
     created_at: datetime
     sex: SexEnum
+
+
+class Brand(BaseModel):
+    name: str
+    url: str
+    sex: SexEnum
