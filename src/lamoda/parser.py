@@ -6,6 +6,19 @@ import asyncio
 import aiohttp
 
 
+def parse_categories(url) -> list:
+    response = requests.get(url)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    nav_panel = soup.find('nav', {"class": "d-header-topmenu"})
+    categories = []
+    for el in nav_panel.find_all('a'):
+        cat_name = el.get_text(strip=True)
+        categories.append({"name": cat_name, "url": el['href']}) if cat_name != '' else None
+    return categories
+
+
 async def get_products_from_page(url) -> list:
     links = []
     connector = aiohttp.TCPConnector(ssl=False)
