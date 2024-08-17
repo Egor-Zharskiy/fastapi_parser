@@ -6,7 +6,7 @@ import asyncio
 import aiohttp
 
 
-def parse_categories(url) -> list:
+def parse_categories(url: str) -> list:
     response = requests.get(url)
     response.raise_for_status()
 

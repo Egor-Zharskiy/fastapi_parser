@@ -18,3 +18,10 @@ class MongoConnection:
 
     def insert_data(self, collection: str, data: dict):
         self.db[collection].insert_one(data)
+
+    def update_data(self, collection: str, query: dict, data: dict):
+        self.db[collection].update_one(query, {"$set": data}, upsert=True)
+
+    def delete_one(self, collection: str, query: dict):
+        result = self.db[collection].delete_one(query)
+        return result.deleted_count
