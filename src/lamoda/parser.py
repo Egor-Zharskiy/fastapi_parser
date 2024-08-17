@@ -1,9 +1,11 @@
 import json
-
 from bs4 import BeautifulSoup
 import requests
 import asyncio
 import aiohttp
+from fastapi import HTTPException, status
+
+from lamoda.schemas import Product
 
 
 def parse_categories(url: str) -> list:
@@ -45,7 +47,7 @@ async def generate_next_page_url(base_url: str, current_page: int) -> str:
         return f"{base_url}?page={current_page + 1}"
 
 
-async def get_all_products_from(url):
+async def get_category_products(url):
     product_links = []
     page = 0
 
@@ -63,48 +65,58 @@ async def get_all_products_from(url):
     return all_products
 
 
-async def get_detailed_product(url) -> dict:
+async def get_detailed_product(url) -> Product:
     connector = aiohttp.TCPConnector(ssl=False)
     async with aiohttp.ClientSession(connector=connector) as session:
         async with session.get(url) as response:
             response.raise_for_status()
             text = await response.text()
 
-    soup = BeautifulSoup(text, 'html.parser')
-    product_name = soup.find('span', class_="x-premium-product-title__brand-name").text.strip()
-    model_name = soup.find('div', class_="x-premium-product-title__model-name").text.strip()
-    price_tag = soup.find_all('span', class_="x-premium-product-prices__price")
-    rating_count_tag = soup.find('div', class_="product-rating__count")
-    rating_tag = soup.find('div', class_="product-rating__stars-inner")
-
     try:
-        rating = float(rating_tag.get('style').split('width:')[1].split('%')[0]) * 5 / 100
-        rating_count = rating_count_tag.text.strip()
+        soup = BeautifulSoup(text, 'html.parser')
+        product_name = soup.find('span', class_="x-premium-product-title__brand-name").text.strip()
+        model_name = soup.find('div', class_="x-premium-product-title__model-name").text.strip()
+        price_tag = soup.find_all('span', class_="x-premium-product-prices__price")
+        rating_count_tag = soup.find('div', class_="product-rating__count")
+        rating_tag = soup.find('div', class_="product-rating__stars-inner")
+
+        try:
+            rating = float(rating_tag.get('style').split('width:')[1].split('%')[0]) * 5 / 100
+            rating_count = rating_count_tag.text.strip()
+        except AttributeError:
+            rating = None
+            rating_count = None
+
+        price = None
+        for el in price_tag:
+            price_text = el.text.strip()
+            if 'р.' in price_text:
+                price = price_text
+
+        description_tags = soup.find_all(class_="x-premium-product-description-attribute")
+        description = {}
+        for el in description_tags:
+            attr = el.text.strip().split('.')
+            description[attr[0]] = attr[-1]
+
+        data = Product(
+            price=price,
+            product_name=product_name,
+            name_model=model_name,
+            rating=rating,
+            rating_count=rating_count,
+            description=description
+        )
+
+        return data
+
     except AttributeError:
-        rating = None
-        rating_count = None
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Failed to parse information about the product")
 
-    price = None
-    for el in price_tag:
-        price_text = el.text.strip()
-        if 'р.' in price_text:
-            price = price_text
-
-    description_tags = soup.find_all(class_="x-premium-product-description-attribute")
-    description = {}
-    for el in description_tags:
-        attr = el.text.strip().split('.')
-        description[attr[0]] = attr[-1]
-
-    data = {
-        'price': price,
-        'product_name': product_name,
-        'model_name': model_name,
-        'rating': rating,
-        'rating_count': rating_count,
-        'description': description
-    }
-    return data
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Unexpected error occurred")
 
 
 def parse_brands(url: str) -> list:

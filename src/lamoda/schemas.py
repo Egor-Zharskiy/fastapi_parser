@@ -1,6 +1,8 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
+from typing import Optional, Dict
+
+from pydantic import BaseModel, Field
 
 
 class SexEnum(Enum):
@@ -20,3 +22,12 @@ class Brand(BaseModel):
     name: str
     url: str
     sex: SexEnum
+
+
+class Product(BaseModel):
+    price: Optional[str]
+    product_name: str
+    name_model: str
+    rating: Optional[float]
+    rating_count: Optional[str]
+    description: Dict[str, str] = Field(default_factory=dict)

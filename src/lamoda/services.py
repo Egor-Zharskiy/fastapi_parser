@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Union
 from datetime import datetime
+from bson import ObjectId
 
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
@@ -8,11 +9,12 @@ from database import MongoConnection
 from lamoda import constants
 from lamoda.constants import SexEnum
 from lamoda.parser import parse_categories
-from lamoda.schemas import Category, Brand
+from lamoda.schemas import Category, Brand, Product
+
+db = MongoConnection()
 
 
 async def get_categories_service() -> list:
-    db = MongoConnection()
     raw_data = db.find_data('categories')
     categories = []
     for data in raw_data:
@@ -47,7 +49,6 @@ async def get_url(sex: str, category: str):
 
 async def get_brands_service(gender: Optional[str] = None) -> Optional[Union[list, Exception]]:
     brands = []
-    db = MongoConnection()
     raw_data = db.find_data('brands', None if not gender else {"sex": get_gender(gender)})
 
     try:
@@ -60,7 +61,6 @@ async def get_brands_service(gender: Optional[str] = None) -> Optional[Union[lis
 
 
 async def get_brand_url(gender: str, brand_name: str) -> Union[str, Exception]:
-    db = MongoConnection()
     try:
         raw_data = db.find_one('brands', {"sex": gender, "name": brand_name.lower()})
         brand = Brand(**raw_data)
@@ -80,7 +80,6 @@ def get_gender(gender: str):
 
 
 def write_categories(gender: str):
-    db = MongoConnection()
     try:
         data = parse_categories(constants.genders[gender])
         for item in data:
@@ -95,9 +94,36 @@ def write_categories(gender: str):
 
 
 def delete_category_service(gender: str, name: str):
-    db = MongoConnection()
     deleted = db.delete_one('categories', {"name": name, "sex": gender})
     if deleted == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found")
 
     return JSONResponse(status_code=status.HTTP_200_OK, content='deleted successfully')
+
+
+def write_items_service(data: List[Product]):
+    try:
+        for item in data:
+            db.insert_or_update_data('items', item.dict())
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unexpected error occurred")
+
+
+def create_product_service(product: Product):
+    db.insert_one('items', product.dict())
+    return JSONResponse(status_code=status.HTTP_200_OK, content="Product created")
+
+
+def update_product_service(product_id: str, data: Product):
+    product_data = data.dict()
+
+    object_id = ObjectId(product_id)
+
+    result = db.update_data('items', {"_id": object_id}, product_data)
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content="Product updated successfully")
+
+
+def delete_item_service(product_id: str):
+    db.delete_one('items', {"_id": product_id})
+    return JSONResponse(status_code=status.HTTP_200_OK, content="deleted successfully")
