@@ -104,7 +104,11 @@ def delete_category_service(gender: str, name: str):
 def write_items_service(data: List[Product]):
     try:
         for item in data:
-            db.insert_or_update_data('items', item.dict())
+            product = item.dict()
+            db.lamoda_insert_or_update_data('items', product,
+                                            {"product_name": product["product_name"],
+                                             "name_model": product["name_model"],
+                                             "description": product["description"]})
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unexpected error occurred")
 
