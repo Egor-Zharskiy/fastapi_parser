@@ -1,13 +1,14 @@
-from typing import Union, List, Optional
+from typing import Optional
 
-from fastapi import APIRouter, status, Query, HTTPException
+from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from twitch.parser import parse_streamers, parse_streams, game_parser
 from twitch.parser import get_token
-from twitch.schemas import Stream, StreamUpdate, StreamersRequest, Streamer
+from twitch.schemas import Stream, StreamUpdate, StreamersRequest, Streamer, Game, GameUpdate
 from twitch.services import get_streams_service, delete_stream_service, update_stream_service, create_stream_service, \
-    write_streamers_service, get_streamers_service, write_games_service
+    write_streamers_service, get_streamers_service, write_games_service, save_game, update_game_service, \
+    delete_game_service
 
 router = APIRouter(
     prefix='/twitch',
@@ -64,3 +65,18 @@ async def create_stream(stream: Stream):
 async def parse_games(query: Optional[str] = None):
     data = game_parser(get_token(), query)
     return write_games_service(data)
+
+
+@router.post('/game', description="save information about game into db")
+async def create_game(game: Game):
+    return save_game(game)
+
+
+@router.patch('/game', description="update information about game")
+async def update_game(game_id: str, game: GameUpdate):
+    return update_game_service(game_id, game)
+
+
+@router.delete('/game')
+async def delete_game(game_id: str):
+    return delete_game_service(game_id)

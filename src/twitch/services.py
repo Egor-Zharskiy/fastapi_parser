@@ -3,7 +3,7 @@ from typing import List, Union
 from pymongo.errors import DuplicateKeyError
 
 from database import MongoConnection
-from twitch.schemas import Stream, StreamUpdate, Streamer, Game
+from twitch.schemas import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 
@@ -73,3 +73,29 @@ def write_games_service(data: List[Game]):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
 
     return JSONResponse(status_code=status.HTTP_200_OK, content='Parsed successfully')
+
+
+def save_game(game: Game):
+    try:
+        db.insert_one('games', game.dict())
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Duplicate of unique key error")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content='Saved to DB successfully')
+
+
+def update_game_service(game_id: str, game: GameUpdate):
+    print(game)
+    result = db.update_without_create('games', {"id": game_id}, game.dict())
+    if result.matched_count:
+        return Game(**db.find_one('games', {'id': game_id}))
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content='Game not found')
+
+
+def delete_game_service(game_id: str):
+    result = db.delete_one('games', {'id': game_id})
+    return JSONResponse(status_code=status.HTTP_200_OK, content='deleted successfully') if result else JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, content='Game not found')

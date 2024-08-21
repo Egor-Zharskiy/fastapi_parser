@@ -75,3 +75,9 @@ class Game(BaseModel):
     name: str
     box_art_url: str
     igdb_id: str
+
+
+class GameUpdate(BaseModel):
+    name: str
+    box_art_url: str
+    igdb_id: str
