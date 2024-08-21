@@ -1,14 +1,14 @@
-from typing import Union
+from typing import Union, List
 
 import requests
 from config import CLIENT_ID, SECRET_KEY, CREDENTIALS
-from twitch.schemas import Stream, Streamer
+from twitch.schemas import Stream, Streamer, Game
 from twitch.services import write_streams
 from twitch.utils import parse_query
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 
-from constants import game_url, stream_url, user_url, token_url
+from twitch.constants import game_url, stream_url, user_url, token_url
 
 
 def get_token():
@@ -51,5 +51,13 @@ def parse_streams(token: str, query: str):
     return JSONResponse(status_code=status.HTTP_200_OK, content="Parsed successfully")
 
 
-def parse_games(token: str, query: str):
+def game_parser(token: str, query: str) -> List[Game]:
     url = game_url
+    params = parse_query(query)
+    headers = {"Client-ID": CLIENT_ID, "Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code == 200:
+        games = [Game(**game) for game in response.json()['data']]
+        return games
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                        detail='error with TWITCH API, please verify that query data is correct')

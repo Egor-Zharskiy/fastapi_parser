@@ -68,3 +68,10 @@ class Streamer(BaseModel):
 
 class StreamersRequest(BaseModel):
     list_of_streamers: List[str]
+
+
+class Game(BaseModel):
+    id: str
+    name: str
+    box_art_url: str
+    igdb_id: str

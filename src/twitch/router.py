@@ -3,11 +3,11 @@ from typing import Union, List, Optional
 from fastapi import APIRouter, status, Query, HTTPException
 from fastapi.responses import JSONResponse
 
-from twitch.parser import parse_streamers, parse_streams
+from twitch.parser import parse_streamers, parse_streams, game_parser
 from twitch.parser import get_token
 from twitch.schemas import Stream, StreamUpdate, StreamersRequest, Streamer
 from twitch.services import get_streams_service, delete_stream_service, update_stream_service, create_stream_service, \
-    write_streamers_service, get_streamers_service
+    write_streamers_service, get_streamers_service, write_games_service
 
 router = APIRouter(
     prefix='/twitch',
@@ -36,7 +36,7 @@ async def get_list_of_streamers(streamers: StreamersRequest):
 @router.get('/parse_streams',
             description="Get streams with parameters: user_login, user_id, language, game_id, type."
                         "Query example: &user_id=123&user_login=buster")
-async def parse_streams(query: Optional[str] = None):
+async def streams_parser(query: Optional[str] = None):
     return parse_streams(get_token(), query)
 
 
@@ -58,3 +58,9 @@ async def update_stream(stream_id: str, stream: StreamUpdate):
 @router.post('/streams', description='create stream and insert into db')
 async def create_stream(stream: Stream):
     return create_stream_service(stream)
+
+
+@router.get('/parse_games')
+async def parse_games(query: Optional[str] = None):
+    data = game_parser(get_token(), query)
+    return write_games_service(data)

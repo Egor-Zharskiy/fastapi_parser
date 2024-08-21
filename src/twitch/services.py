@@ -3,7 +3,7 @@ from typing import List, Union
 from pymongo.errors import DuplicateKeyError
 
 from database import MongoConnection
-from twitch.schemas import Stream, StreamUpdate, Streamer
+from twitch.schemas import Stream, StreamUpdate, Streamer, Game
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 
@@ -59,3 +59,17 @@ def get_streamers_service(logins: List[str]):
     query = {"login": {"$in": logins}}
     streamers_data = db.find_data('streamers', query)
     return [Streamer(**streamer) for streamer in streamers_data]
+
+
+def write_games_service(data: List[Game]):
+    try:
+        for item in data:
+            game = item.dict()
+            db.insert_or_update_data('games', game, {"id": game["id"]})
+
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Duplicate of unique key error")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content='Parsed successfully')
