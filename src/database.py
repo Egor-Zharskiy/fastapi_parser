@@ -17,6 +17,9 @@ class MongoConnection:
     def create_streamer_indexes(self):
         self.db['streamers'].create_index("id", unique=True)
 
+    def create_game_indexes(self):
+        self.db['games'].create_index("id", unique=True)
+
     def find_data(self, collection: str, query: Optional[dict] = None):
         return self.db[collection].find(query)
 
