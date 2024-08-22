@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Request
 from fastapi.responses import JSONResponse
 
 from twitch.parser import parse_streamers, parse_streams, game_parser
@@ -37,8 +37,9 @@ async def get_list_of_streamers(streamers: StreamersRequest):
 @router.get('/parse_streams',
             description="Get streams with parameters: user_login, user_id, language, game_id, type."
                         "Query example: &user_id=123&user_login=buster")
-async def streams_parser(query: Optional[str] = None):
-    return parse_streams(get_token(), query)
+async def streams_parser(request: Request):
+    print(request.query_params)
+    return parse_streams(get_token(), str(request.query_params))
 
 
 @router.get('/streams', description='get all saved to db streams')
