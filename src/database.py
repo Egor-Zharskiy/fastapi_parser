@@ -3,13 +3,13 @@ from typing import Optional
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
-from config import DB_HOST, DB_PORT, DB_NAME
+from config import settings
 
 
 class MongoConnection:
     def __init__(self):
-        self.client = MongoClient(DB_HOST, int(DB_PORT))
-        self.db = self.client[DB_NAME]
+        self.client = MongoClient(settings.db_host, int(settings.db_port))
+        self.db = self.client[settings.db_name]
 
     def create_stream_indexes(self):
         self.db['streams'].create_index("id", unique=True)

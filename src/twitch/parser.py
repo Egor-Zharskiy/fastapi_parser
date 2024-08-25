@@ -1,7 +1,7 @@
 from typing import Union, List
 
 import requests
-from config import CLIENT_ID, SECRET_KEY, CREDENTIALS
+from config import settings
 from twitch.schemas import Stream, Streamer, Game
 from twitch.services import write_streams
 from twitch.utils import parse_query
@@ -12,7 +12,7 @@ from twitch.constants import game_url, stream_url, user_url, token_url
 
 
 def get_token():
-    query = {'client_id': CLIENT_ID, "client_secret": SECRET_KEY, 'grant_type': CREDENTIALS}
+    query = {'client_id': settings.client_id, "client_secret": settings.secret_key, 'grant_type': settings.credentials}
     response = requests.post(token_url, params=query)
 
     return response.json()['access_token']
