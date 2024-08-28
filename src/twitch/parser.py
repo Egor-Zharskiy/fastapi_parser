@@ -23,7 +23,7 @@ def parse_streamers(token: str, username: Union[str, list]) -> list:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="List of streamers logins is required")
 
     url = user_url
-    headers = {"Client-ID": CLIENT_ID, "Authorization": f"Bearer {token}"}
+    headers = {"Client-ID": settings.client_id, "Authorization": f"Bearer {token}"}
     params = {
         "login": username
     }
@@ -33,13 +33,16 @@ def parse_streamers(token: str, username: Union[str, list]) -> list:
         raise HTTPException(status_code=response.status_code, detail="Error while fetching data from Twitch API")
 
     streamers = [Streamer(**streamer) for streamer in response.json()['data']]
+
+    print(streamers)
+
     return streamers
 
 
 def parse_streams(token: str, query: str):
     streams = []
     url = stream_url
-    headers = {"Client-ID": CLIENT_ID, "Authorization": f"Bearer {token}"}
+    headers = {"Client-ID": settings.client_id, "Authorization": f"Bearer {token}"}
     params = parse_query(query)
 
     response = requests.get(url, headers=headers, params=params)
@@ -54,7 +57,7 @@ def parse_streams(token: str, query: str):
 def game_parser(token: str, query: str) -> List[Game]:
     url = game_url
     params = parse_query(query)
-    headers = {"Client-ID": CLIENT_ID, "Authorization": f"Bearer {token}"}
+    headers = {"Client-ID": settings.client_id, "Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers, params=params)
     if response.status_code == 200:
         games = [Game(**game) for game in response.json()['data']]
