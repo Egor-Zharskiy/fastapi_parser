@@ -1,7 +1,5 @@
 from typing import List, Union
 
-from pymongo.errors import DuplicateKeyError
-
 from database import MongoConnection
 from twitch.schemas import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
@@ -36,11 +34,13 @@ def update_stream_service(stream_id: str, stream: StreamUpdate) -> Union[Stream,
 
 
 def create_stream_service(stream: Stream):
-    try:
-        db.insert_one('streams', stream.to_dict())
-        return JSONResponse(status_code=status.HTTP_200_OK, content='created successfully')
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Duplicate of unique field")
+    # try:
+    db.insert_one('streams', stream.to_dict())
+    return JSONResponse(status_code=status.HTTP_200_OK, content='created successfully')
+
+
+# except ValueError:
+#     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Duplicate of unique field")
 
 
 def write_streamers_service(streamers: Union[List[Streamer], Streamer]):

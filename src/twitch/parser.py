@@ -47,11 +47,14 @@ def parse_streams(token: str, query: str):
 
     response = requests.get(url, headers=headers, params=params)
     data = response.json()['data']
+    if not data:
+        print('nothing to save after parsing')  # add logging
+        return streams
+
     for stream in data:
         streams.append(Stream(**stream))
 
-    write_streams(streams)
-    return JSONResponse(status_code=status.HTTP_200_OK, content="Parsed successfully")
+    return streams
 
 
 def game_parser(token: str, query: str) -> List[Game]:

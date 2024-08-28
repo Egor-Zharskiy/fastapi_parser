@@ -11,6 +11,9 @@ pydantic = "*"
 requests = "*"
 aiohttp = "*"
 dotenv = "*"
+pip = "*"
+install = "*"
+confluent-kafka = "*"
 
 [dev-packages]
 
