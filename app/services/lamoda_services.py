@@ -6,11 +6,9 @@ from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 
 from database import MongoConnection
-from lamoda import constants
-from lamoda.constants import SexEnum
-from lamoda.parser import parse_categories
-from lamoda.schemas import Category, Brand, Product
-
+from workers.services.parsers.lamoda_parser import parse_categories
+from schemas.lamoda import Category, Brand, Product, SexEnum
+from app.constants.lamoda import genders
 db = MongoConnection()
 
 
@@ -81,7 +79,7 @@ def get_gender(gender: str):
 
 def write_categories(gender: str):
     try:
-        data = parse_categories(constants.genders[gender])
+        data = parse_categories(genders[gender])
         for item in data:
             query = {"name": item["name"], "sex": gender}
             db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
@@ -105,12 +103,12 @@ def write_items_service(data: List[Product]):
     try:
         for item in data:
             product = item.dict()
-            db.lamoda_insert_or_update_data('items', product,
+            db.insert_or_update_data('items', product,
                                             {"product_name": product["product_name"],
                                              "name_model": product["name_model"],
                                              "description": product["description"]})
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unexpected error occurred")
+    except Exception as e:
+        print(f"Unexpected error occurred {str(e)}")
 
 
 def create_product_service(product: Product):
@@ -123,7 +121,7 @@ def update_product_service(product_id: str, data: Product):
 
     object_id = ObjectId(product_id)
 
-    result = db.update_data('items', {"_id": object_id}, product_data)
+    db.update_data('items', {"_id": object_id}, product_data)
 
     return JSONResponse(status_code=status.HTTP_200_OK, content="Product updated successfully")
 

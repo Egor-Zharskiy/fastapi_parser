@@ -1,3 +1,6 @@
+import bs4.element
+
+
 def parse_query(query: str):
     params = {}
     try:
@@ -13,3 +16,12 @@ def parse_query(query: str):
     except Exception as e:
         return {"error": f"An unexpected error occurred {str(e)}"}
     return params
+
+
+def validate_price(price_tag: bs4.ResultSet):
+    for el in price_tag:
+        price_text = el.text.strip()
+        if 'р.' in price_text:
+            return price_text
+
+    return None

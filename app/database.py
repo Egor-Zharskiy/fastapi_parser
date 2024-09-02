@@ -3,7 +3,7 @@ from typing import Optional
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
-from config import settings
+from app.config.config import settings
 
 
 class MongoConnection:

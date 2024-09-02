@@ -1,19 +1,19 @@
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from lamoda.constants import SexEnum
-from lamoda.schemas import Category, Product
-from lamoda.services import get_cat_names, get_url, get_brands_service, get_brand_url, write_categories, \
-    delete_category_service, write_items_service, create_product_service, update_product_service, delete_item_service
+from services.lamoda_producer import LamodaProducer
+from schemas.lamoda import Category, Product, SexEnum
+from services.lamoda_services import get_cat_names, get_brands_service, write_categories, \
+    delete_category_service, create_product_service, update_product_service, delete_item_service, get_url
 
 from typing import Dict, List
-
-from lamoda.parser import get_category_products, get_detailed_product
 
 router = APIRouter(
     prefix='/lamoda',
     tags=["Lamoda"]
 )
+
+producer = LamodaProducer()
 
 
 @router.get('/update_categories_names',
@@ -40,26 +40,25 @@ async def get_brands(sex: SexEnum):
     return {"data": data}
 
 
-@router.get('/get_brand_items', description="get brand's items by the name of the brand")
+@router.get('/parse_brand_items', description="parse brand's items by the name of the brand")
 async def get_brand_items(brand: str, gender: SexEnum):
-    brand_url = await get_brand_url(gender.value, brand)
-    products = await get_category_products(brand_url)
-    write_items_service(products)
-    return {"data": products}
+    producer.send_request("parse_brand_topic", brand, {"brand": brand, "gender": gender.value})
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to Kafka.')
 
 
-@router.get("/product/{url}/", response_model=Dict[str, Product], description="get full information about item")
-async def get_product(url: str):
-    data = await get_detailed_product(url)
-    return {"data": data}
-
-
-@router.get("/category/")
+@router.get("/parse_category/", description='get all products from the given category')
 async def get_all_prods(sex: SexEnum, category: str):
     url = await get_url(sex.value, category)
-    products = await get_category_products(url)
-    write_items_service(products)
-    return {"data": products}
+    producer.send_request("parse_category_topic", category, {"url": url})
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to Kafka.')
+
+
+# @router.get("/product/", response_model=Dict[str, Product], description="get full information about item")
+# async def get_product(url: str):
+#     data = await get_detailed_product(url)
+#     return {"data": data}
 
 
 @router.delete('/product')

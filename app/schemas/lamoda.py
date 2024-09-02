@@ -28,6 +28,7 @@ class Product(BaseModel):
     price: Optional[str]
     product_name: str
     name_model: str
-    rating: Optional[float]
-    rating_count: Optional[str]
+    link: Optional[str] = None
+    rating: Optional[float] = None
+    rating_count: Optional[str] = None
     description: Dict[str, str] = Field(default_factory=dict)

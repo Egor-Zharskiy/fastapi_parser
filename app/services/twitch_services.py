@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from database import MongoConnection
-from twitch.schemas import Stream, StreamUpdate, Streamer, Game, GameUpdate
+from schemas.twitch import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 
@@ -51,7 +51,7 @@ def write_streamers_service(streamers: Union[List[Streamer], Streamer]):
         print(e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Streamer with this id already exists.")
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
 
 
