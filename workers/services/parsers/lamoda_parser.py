@@ -5,11 +5,14 @@ import bs4
 from bs4 import BeautifulSoup
 import requests
 import aiohttp
-from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from workers.schemas.schemas import Product
 from workers.utils.utils import validate_price
+
+import logging
+
+logger = logging.getLogger("Lamoda Services")
 
 
 def parse_categories(url: str) -> list:
@@ -76,10 +79,10 @@ def get_products_info(cards: List[bs4.element.Tag]) -> List[Product]:
             products.append(product)
 
         except ValidationError:
-            print('error while create Product object')
+            logger.info('error while create Product object')
 
         except Exception as e:
-            print(f"Unexpected error {str(e)}")
+            logger.info(f"Unexpected error {str(e)}")
 
     return products
 
@@ -104,8 +107,8 @@ async def get_category_products(url):
         else:
             break
 
-    print(products)
-    print(len(products))
+    logger.info(products)
+    logger.info(f"Number of parsed products: {len(products)}")
 
     return products
 
@@ -170,12 +173,10 @@ async def get_detailed_product(url) -> Product:
         return data
 
     except AttributeError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Failed to parse information about the product")
+        logger.error("Failed to parse information about the product")
 
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Unexpected error occurred")
+    except Exception as e:
+       logger.error(f"Unexpected error occurred {str(e)}")
 
 
 def parse_brands(url: str) -> list:

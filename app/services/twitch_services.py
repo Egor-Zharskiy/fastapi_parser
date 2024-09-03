@@ -4,8 +4,11 @@ from database import MongoConnection
 from schemas.twitch import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
+import logging
 
 db = MongoConnection()
+
+logger = logging.getLogger('Twitch Services')
 
 
 def write_streams(data: List[Stream]):
@@ -34,13 +37,8 @@ def update_stream_service(stream_id: str, stream: StreamUpdate) -> Union[Stream,
 
 
 def create_stream_service(stream: Stream):
-    # try:
     db.insert_one('streams', stream.to_dict())
     return JSONResponse(status_code=status.HTTP_200_OK, content='created successfully')
-
-
-# except ValueError:
-#     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Duplicate of unique field")
 
 
 def write_streamers_service(streamers: Union[List[Streamer], Streamer]):
@@ -48,10 +46,11 @@ def write_streamers_service(streamers: Union[List[Streamer], Streamer]):
         for streamer in streamers:
             db.insert_or_update_data('streamers', streamer.dict(), {"id": streamer.id})
     except ValueError as e:
-        print(e)
+        logger.error(str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Streamer with this id already exists.")
 
-    except Exception:
+    except Exception as e:
+        logger.error(str(e))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
 
 
@@ -67,9 +66,9 @@ def write_games_service(data: List[Game]):
             game = item.dict()
             db.insert_or_update_data('games', game, {"id": game["id"]})
 
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Duplicate of unique key error")
-    except Exception:
+
+    except Exception as e:
+        logger.error(str(e))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
 
     return JSONResponse(status_code=status.HTTP_200_OK, content='Parsed successfully')
@@ -78,8 +77,6 @@ def write_games_service(data: List[Game]):
 def save_game(game: Game):
     try:
         db.insert_one('games', game.dict())
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Duplicate of unique key error")
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
 

@@ -4,9 +4,12 @@ import requests
 from workers.config.config import twitch_settings
 from workers.schemas.schemas import Stream, Streamer, Game
 from workers.utils.utils import parse_query
-from fastapi import status, HTTPException
 
 from workers.constants.twitch import game_url, stream_url, user_url, token_url
+
+import logging
+
+logger = logging.getLogger('twitch parser')
 
 
 def get_token():
@@ -19,7 +22,7 @@ def get_token():
 
 def parse_streamers(token: str, username: Union[str, list]) -> list:
     if not username:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="List of streamers logins is required")
+        logger.error("List of streamers logins is required")
 
     url = user_url
     headers = {"Client-ID": twitch_settings.client_id, "Authorization": f"Bearer {token}"}
@@ -29,11 +32,11 @@ def parse_streamers(token: str, username: Union[str, list]) -> list:
 
     response = requests.get(url, headers=headers, params=params)
     if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="Error while fetching data from Twitch API")
+        logger.error("Error while fetching data from Twitch API")
 
     streamers = [Streamer(**streamer) for streamer in response.json()['data']]
 
-    print(streamers)
+    logger.info(streamers)
 
     return streamers
 
@@ -47,7 +50,7 @@ def parse_streams(token: str, query: str):
     response = requests.get(url, headers=headers, params=params)
     data = response.json()['data']
     if not data:
-        print('nothing to save after parsing')  # add logging
+        logger.info('nothing to save after parsing')  # add logging
         return streams
 
     for stream in data:
@@ -63,7 +66,5 @@ def game_parser(token: str, query: str) -> List[Game]:
     response = requests.get(url, headers=headers, params=params)
     if response.status_code == 200:
         games = [Game(**game) for game in response.json()['data']]
-        print(games)
+        logger.info(games)
         return games
-    # raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-    #                     detail='error with TWITCH API, please verify that query data is correct')

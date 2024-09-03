@@ -2,18 +2,21 @@ from workers.config.kafka import KafkaConsumer
 from workers.services.parsers.twitch_parser import parse_streamers, parse_streams, game_parser, get_token
 from workers.services.services import write_streamers_service, write_games_service, write_streams
 from workers.config.config import kafka_settings
+import logging
 
 
 class TwitchConsumer:
     def __init__(self):
-        print('twitch consumer started')
+        self.logger = logging.getLogger('Twitch Consumer')
+        self.logger.setLevel(logging.ERROR)
         self.consumer_conf = {
             'bootstrap_servers': kafka_settings.bootstrap_servers,
             'group_id': kafka_settings.twitch_group_id
         }
 
     def consume_parse_streamers(self):
-        print('parse streamers consumer started')
+        self.logger.info('parse streamers consumer started')
+
         consumer = KafkaConsumer(
             bootstrap_servers=self.consumer_conf['bootstrap_servers'],
             group_id=self.consumer_conf['group_id'],
@@ -23,7 +26,8 @@ class TwitchConsumer:
         consumer.close()
 
     def consume_parse_streams(self):
-        print('parse streams consumer started')
+        self.logger.info('parse streams consumer started')
+
         consumer = KafkaConsumer(
             bootstrap_servers=self.consumer_conf['bootstrap_servers'],
             group_id=self.consumer_conf['group_id'],
@@ -33,7 +37,8 @@ class TwitchConsumer:
         consumer.close()
 
     def consume_parse_games(self):
-        print('parse games consumer started')
+        self.logger.info('parse games consumer started')
+
         consumer = KafkaConsumer(
             bootstrap_servers=self.consumer_conf['bootstrap_servers'],
             group_id=self.consumer_conf['group_id'],

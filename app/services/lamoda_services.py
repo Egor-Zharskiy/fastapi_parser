@@ -9,6 +9,10 @@ from database import MongoConnection
 from workers.services.parsers.lamoda_parser import parse_categories
 from schemas.lamoda import Category, Brand, Product, SexEnum
 from app.constants.lamoda import genders
+
+import logging
+
+logger = logging.getLogger('Lamoda Services')
 db = MongoConnection()
 
 
@@ -20,7 +24,7 @@ async def get_categories_service() -> list:
             category = Category(**data)
             categories.append(category)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
 
     return categories
 
@@ -53,6 +57,7 @@ async def get_brands_service(gender: Optional[str] = None) -> Optional[Union[lis
         for brand in raw_data:
             brands.append(Brand(**brand))
     except Exception as e:
+        logger.error(str(e))
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return brands
@@ -63,7 +68,8 @@ async def get_brand_url(gender: str, brand_name: str) -> Union[str, Exception]:
         raw_data = db.find_one('brands', {"sex": gender, "name": brand_name.lower()})
         brand = Brand(**raw_data)
 
-    except TypeError:
+    except TypeError as e:
+        logger.error(str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='invalid data sent to server.')
 
     return f'https://lamoda.by{brand.url}'
@@ -72,7 +78,8 @@ async def get_brand_url(gender: str, brand_name: str) -> Union[str, Exception]:
 def get_gender(gender: str):
     try:
         return SexEnum(gender).value
-    except ValueError:
+    except TypeError as e:
+        logger.error(str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Incorrect gender: available: man, woman, kids")
 
@@ -83,10 +90,12 @@ def write_categories(gender: str):
         for item in data:
             query = {"name": item["name"], "sex": gender}
             db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
-    except ValueError as ve:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"ValueError: {str(ve)}")
+    except TypeError as te:
+        logger.error(str(te))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"TypeError: {str(ve)}")
 
     except Exception as e:
+        logger.error(str(e))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail=f"An unexpected error occurred: {str(e)}")
 
@@ -104,11 +113,11 @@ def write_items_service(data: List[Product]):
         for item in data:
             product = item.dict()
             db.insert_or_update_data('items', product,
-                                            {"product_name": product["product_name"],
-                                             "name_model": product["name_model"],
-                                             "description": product["description"]})
+                                     {"product_name": product["product_name"],
+                                      "name_model": product["name_model"],
+                                      "description": product["description"]})
     except Exception as e:
-        print(f"Unexpected error occurred {str(e)}")
+        logger.error(f"Unexpected error occurred {str(e)}")
 
 
 def create_product_service(product: Product):

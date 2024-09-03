@@ -10,12 +10,14 @@ from pydantic import ValidationError
 from workers.database import MongoConnection
 from workers.schemas.schemas import Product, Brand
 from workers.schemas.schemas import Streamer, Game, Stream
-from fastapi import status, HTTPException
+from fastapi import status
+import logging
 
 from workers.services.parsers.lamoda_parser import generate_next_page_url
 from workers.utils.utils import validate_price
 
 db = MongoConnection()
+logger = logging.getLogger('worker services')
 
 
 def write_items_service(data: List[Product]):
@@ -27,7 +29,7 @@ def write_items_service(data: List[Product]):
                                       "name_model": product["name_model"],
                                       "description": product["description"]})
     except Exception as e:
-        print(f"Unexpected error occurred {str(e)}")
+        logger.error(f"Unexpected error occurred {str(e)}")
 
 
 def write_streamers_service(streamers: Union[List[Streamer], Streamer]):
@@ -35,11 +37,11 @@ def write_streamers_service(streamers: Union[List[Streamer], Streamer]):
         for streamer in streamers:
             db.insert_or_update_data('streamers', streamer.dict(), {"id": streamer.id})
     except ValueError as e:
-        print(e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Streamer with this id already exists.")
+        logger.error(f"Streamer with this id already exists. {str(e)}")
 
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
+
+    except Exception as e:
+        logger.error(f"an unexpected error occurred {str(e)}")
 
 
 def write_games_service(data: List[Game]):
@@ -49,9 +51,10 @@ def write_games_service(data: List[Game]):
             db.insert_or_update_data('games', game, {"id": game["id"]})
 
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Duplicate of unique key error")
+        logger.error("Duplicate of unique key error")
+
     except Exception:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="an unexpected error occurred")
+        logger.error("an unexpected error occurred")
 
     return JSONResponse(status_code=status.HTTP_200_OK, content='Parsed successfully')
 
@@ -91,16 +94,16 @@ def get_products_info(cards: List[bs4.element.Tag]):
             products.append(product)
 
         except ValidationError:
-            print('error while create Product object')
+            logger.error('error while create Product object')
 
         except Exception as e:
-            print(f"Unexpected error {str(e)}")
+            logger.error(f'Unexpected error {str(e)}')
 
     return products
 
 
 def get_category_products(url):
-    print('parser is started!')
+    logger.info('parser is started!')
     products = []
     page = 0
 
@@ -113,18 +116,19 @@ def get_category_products(url):
         else:
             break
 
-    print(products)
-    print(f"number of parsed products: {len(products)}")
+    logger.info(products)
+    logger.info(f"number of parsed products: {len(products)}")
 
     return products
 
 
 def get_brand_url(gender: str, brand_name: str) -> Union[str, Exception]:
+    brand = None
     try:
         raw_data = db.find_one('brands', {"sex": gender, "name": brand_name.lower()})
         brand = Brand(**raw_data)
 
     except TypeError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='invalid data sent to server.')
+        logger.error('invalid data sent to server.')
 
     return f'https://lamoda.by{brand.url}'
