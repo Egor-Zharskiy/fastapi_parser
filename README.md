@@ -1,4 +1,4 @@
-# **Lamoda Parser Backend**
+# **Lamoda and Twitch Parser Backend**
 
 Backend system for parsing data from various sources.
 
@@ -18,8 +18,6 @@ consumers work
     - Pipenv
     - Pydantic
 
-
-# Lamoda Parsing Project
 
 A comprehensive backend system for parsing data from various sources, including Lamoda and Twitch.
 
