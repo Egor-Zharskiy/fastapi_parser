@@ -12,7 +12,7 @@ services:
     image: redis:latest
     ports:
       - ${REDIS_PORT}:6379
-    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_USER_PASSWORD}
     volumes:
       - /redisdata
 
@@ -42,3 +42,4 @@ services:
 
 volumes:
   dbdata:
+  redisdata:

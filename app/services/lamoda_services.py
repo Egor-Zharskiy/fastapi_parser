@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List, Optional, Union
 from datetime import datetime
 from bson import ObjectId
@@ -6,6 +7,7 @@ from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 
 from database import MongoConnection
+from services.redis_service import redis_client
 from workers.services.parsers.lamoda_parser import parse_categories
 from schemas.lamoda import Category, Brand, Product, SexEnum
 from app.constants.lamoda import genders
@@ -92,7 +94,7 @@ def write_categories(gender: str):
             db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
     except TypeError as te:
         logger.error(str(te))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"TypeError: {str(ve)}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"TypeError: {str(te)}")
 
     except Exception as e:
         logger.error(str(e))
@@ -138,3 +140,18 @@ def update_product_service(product_id: str, data: Product):
 def delete_item_service(product_id: str):
     db.delete_one('items', {"_id": product_id})
     return JSONResponse(status_code=status.HTTP_200_OK, content="deleted successfully")
+
+
+def get_products_by_brand_service(brand: str) -> list:
+    redis_data = redis_client.get_value(f"{brand} items")
+    if redis_data:
+        logger.info('data from redis')
+        raw_data = json.loads(redis_data)
+        data = [Product(**product) for product in raw_data]
+    else:
+        logger.info('data from db')
+        raw_data = list(db.find_data('items', {"product_name": brand}))
+        data = [Product(**product) for product in raw_data]
+        redis_client.set_value(f"{brand} items", json.dumps([product.dict() for product in data]), ex=300)
+
+    return data

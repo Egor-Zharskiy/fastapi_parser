@@ -16,4 +16,5 @@ class AppSettings(BaseSettings):
     credentials: str = os.getenv('TWITCH_GRANT_TYPE')
 
 
+
 settings = AppSettings()

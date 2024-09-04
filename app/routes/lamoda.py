@@ -4,7 +4,8 @@ from fastapi.responses import JSONResponse
 from services.lamoda_producer import LamodaProducer
 from schemas.lamoda import Category, Product, SexEnum
 from services.lamoda_services import get_cat_names, get_brands_service, write_categories, \
-    delete_category_service, create_product_service, update_product_service, delete_item_service, get_url
+    delete_category_service, create_product_service, update_product_service, delete_item_service, get_url, \
+    get_products_by_brand_service
 
 from typing import Dict, List
 
@@ -53,6 +54,13 @@ async def get_all_prods(sex: SexEnum, category: str):
     producer.send_request("parse_category_topic", category, {"url": url})
 
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to Kafka.')
+
+
+@router.get('/products/', description='get product by brand name')
+async def get_products(brand: str):
+    data = get_products_by_brand_service(brand)
+
+    return data
 
 
 # @router.get("/product/", response_model=Dict[str, Product], description="get full information about item")

@@ -14,6 +14,7 @@ consumers work
     - BeautifulSoup
     - Requests
     - Kafka
+    - Redis
     - Docker/Docker Compose
     - Pipenv
     - Pydantic

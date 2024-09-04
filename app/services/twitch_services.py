@@ -1,10 +1,15 @@
+import json
 from typing import List, Union
+
+from aiohttp import streamer
 
 from database import MongoConnection
 from schemas.twitch import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 import logging
+
+from services.redis_service import redis_client
 
 db = MongoConnection()
 
@@ -17,9 +22,26 @@ def write_streams(data: List[Stream]):
         db.insert_or_update_data('streams', stream, {"id": stream['id']})
 
 
-def get_streams_service() -> dict:
-    data = [Stream(**stream) for stream in db.find_data('streams', None)]
-    return {"data": data}
+def get_streams_service() -> Union[List[dict], List[Stream]]:
+    try:
+        redis_data = redis_client.get_value("streams")
+        if redis_data:
+            logger.info('getting data from redis')
+
+            data = json.loads(redis_data)
+            return [Stream(**stream) for stream in data]
+
+        else:
+            logger.info('getting data from db')
+
+            data = [Stream(**stream) for stream in db.find_data('streams', None)]
+            redis_client.set_value("streams", json.dumps([stream.to_dict() for stream in data], default=str), ex=300)
+            return data
+
+    except Exception as e:
+        logger.error(str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"An unexpected error occurred: {str(e)}")
 
 
 def delete_stream_service(stream_id: str) -> JSONResponse:
@@ -55,9 +77,46 @@ def write_streamers_service(streamers: Union[List[Streamer], Streamer]):
 
 
 def get_streamers_service(logins: List[str]):
-    query = {"login": {"$in": logins}}
-    streamers_data = db.find_data('streamers', query)
-    return [Streamer(**streamer) for streamer in streamers_data]
+    try:
+        redis_data = redis_client.get_value(f"{logins} streamers")
+
+        if redis_data:
+            logger.info('getting data from redis')
+            data = json.loads(redis_data)
+            return [Streamer(**streamer) for streamer in data]
+        else:
+            logger.info('getting data from redis')
+            query = {"login": {"$in": logins}}
+            data = [Streamer(**streamer) for streamer in db.find_data('streamers', query)]
+            redis_client.set_value(f"{logins} streamers", json.dumps([item.dict() for item in data], default=str),
+                                   ex=300)
+            return data
+
+    except Exception as e:
+        logger.error(str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"An unexpected error occurred: {str(e)}")
+
+
+def get_streamer_service(login: str):
+    try:
+        redis_data = redis_client.get_value(f"{login} streamer")
+
+        if redis_data:
+            logger.info('getting data from redis')
+            data = json.loads(redis_data)
+            return Streamer(**data)
+
+        else:
+            query = {"login": login}
+            streamer = Streamer(**db.find_one('streamers', query))
+            redis_client.set_value(f"{login} streamer", json.dumps(streamer.dict(), default=str), ex=300)
+            return streamer
+
+    except Exception as e:
+        logger.error(str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"An unexpected error occurred: {str(e)}")
 
 
 def write_games_service(data: List[Game]):

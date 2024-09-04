@@ -2,12 +2,11 @@ from fastapi import APIRouter, status, Request
 from fastapi.responses import JSONResponse
 
 from services.twitch_producer import TwitchProducer
-from workers.services.parsers.twitch_parser import parse_streamers
-from workers.services.parsers.twitch_parser import get_token
 from schemas.twitch import Stream, StreamUpdate, StreamersRequest, Game, GameUpdate
-from services.twitch_services import get_streams_service, delete_stream_service, update_stream_service, create_stream_service, \
+from services.twitch_services import get_streams_service, delete_stream_service, update_stream_service, \
+    create_stream_service, \
     get_streamers_service, save_game, update_game_service, \
-    delete_game_service
+    delete_game_service, get_streamer_service
 
 router = APIRouter(
     prefix='/twitch',
@@ -21,14 +20,12 @@ producer = TwitchProducer()
 async def get_streamers(streamers: StreamersRequest):
     producer.send_streamers_request(streamers.list_of_streamers)
 
-    # streamers_data = parse_streamers(get_token(), streamers.list_of_streamers)
-    # write_streamers_service(streamers_data)
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to kafka')
 
 
 @router.get('/streamer/{username}', description='get information about streamer by his username')
 async def get_streamer(username: str):
-    return parse_streamers(get_token(), username)
+    return get_streamer_service(username)
 
 
 @router.post('/get_list_of_streamers',
@@ -68,9 +65,6 @@ async def create_stream(stream: Stream):
 
 @router.get('/parse_games')
 async def parse_games(request: Request):
-    # data = game_parser(get_token(), str(request.query_params))
-    # return write_games_service(data)
-
     producer.send_games_request(str(request.query_params))
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to kafka')
 
