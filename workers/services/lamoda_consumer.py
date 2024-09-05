@@ -1,44 +1,62 @@
-from workers.config.kafka import KafkaConsumer
+import json
+
 from workers.services.services import write_items_service, get_category_products, get_brand_url
 from workers.config.config import kafka_settings
 import logging
+from aiokafka import AIOKafkaConsumer
 
 
 class LamodaConsumer:
     def __init__(self):
         self.logger = logging.getLogger('Lamoda Consumer')
-        self.consumer_conf = {
-            'bootstrap_servers': kafka_settings.bootstrap_servers,
-            'group_id': kafka_settings.kafka_group_id
-        }
+        self.bootstrap_servers = kafka_settings.bootstrap_servers
+        self.group_id = kafka_settings.kafka_group_id
 
-    def consume_parse_category(self):
-        self.logger.info('parse category consumer')
+    async def consume_parse_category(self):
+        self.logger.info('Starting category parser consumer')
 
-        consumer = KafkaConsumer(
-            bootstrap_servers=self.consumer_conf['bootstrap_servers'],
-            group_id=self.consumer_conf['group_id'],
-            topic='parse_category_topic'
+        consumer = AIOKafkaConsumer(
+            'parse_category_topic',
+            bootstrap_servers=self.bootstrap_servers,
+            group_id=self.group_id,
+            enable_auto_commit=False
         )
-        consumer.consume_messages(self.process_categories)
-        consumer.close()
+        await consumer.start()
+        try:
+            async for message in consumer:
+                data_str = message.value.decode('utf-8')
+                data = json.loads(data_str)
+                await self.process_categories(data)
+        finally:
+            await consumer.stop()
 
-    def consume_parse_brands(self):
+    async def consume_parse_brands(self):
         self.logger.info('brand parser consumer')
 
-        consumer = KafkaConsumer(
-            bootstrap_servers=self.consumer_conf['bootstrap_servers'],
-            group_id=self.consumer_conf['group_id'],
-            topic='parse_brand_topic'
+        consumer = AIOKafkaConsumer(
+            'parse_brand_topic',
+            bootstrap_servers=self.bootstrap_servers,
+            group_id=self.group_id,
+            max_poll_interval_ms=600000,
+            session_timeout_ms=30000,
+            enable_auto_commit=False
+
         )
-        consumer.consume_messages(self.process_brands)
-        consumer.close()
+        await consumer.start()
+        try:
+            async for message in consumer:
+                data_str = message.value.decode('utf-8')
+                data = json.loads(data_str)
+                await self.process_brands(data)
+                await consumer.commit()
+        finally:
+            await consumer.stop()
 
-    def process_categories(self, data):
-        products_data = get_category_products(data['url'])
-        write_items_service(products_data)
+    async def process_categories(self, data):
+        products_data = await get_category_products(data['url'])
+        await write_items_service(products_data)
 
-    def process_brands(self, data):
-        brand_url = get_brand_url(data['gender'], data['brand'])
-        products = get_category_products(brand_url)
-        write_items_service(products)
+    async def process_brands(self, data):
+        brand_url = await get_brand_url(data['gender'], data['brand'])
+        products = await get_category_products(brand_url)
+        await write_items_service(products)

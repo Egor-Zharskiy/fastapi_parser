@@ -87,7 +87,7 @@ def get_products_info(cards: List[bs4.element.Tag]) -> List[Product]:
     return products
 
 
-def generate_next_page_url(base_url: str, current_page: int) -> str:
+async def generate_next_page_url(base_url: str, current_page: int) -> str:
     if "?" in base_url:
         return f"{base_url}&page={current_page + 1}"
     else:

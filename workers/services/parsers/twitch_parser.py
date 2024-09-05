@@ -20,7 +20,7 @@ def get_token():
     return response.json()['access_token']
 
 
-def parse_streamers(token: str, username: Union[str, list]) -> list:
+async def parse_streamers(token: str, username: Union[str, list]) -> list:
     if not username:
         logger.error("List of streamers logins is required")
 
@@ -41,7 +41,7 @@ def parse_streamers(token: str, username: Union[str, list]) -> list:
     return streamers
 
 
-def parse_streams(token: str, query: str):
+async def parse_streams(token: str, query: str):
     streams = []
     url = stream_url
     headers = {"Client-ID": twitch_settings.client_id, "Authorization": f"Bearer {token}"}
@@ -59,7 +59,7 @@ def parse_streams(token: str, query: str):
     return streams
 
 
-def game_parser(token: str, query: str) -> List[Game]:
+async def game_parser(token: str, query: str) -> List[Game]:
     url = game_url
     params = parse_query(query)
     headers = {"Client-ID": twitch_settings.client_id, "Authorization": f"Bearer {token}"}
