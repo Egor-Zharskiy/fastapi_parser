@@ -1,6 +1,5 @@
 import json
 
-from workers.config.kafka import KafkaConsumer
 from workers.services.parsers.twitch_parser import parse_streamers, parse_streams, game_parser, get_token
 from workers.services.services import write_streamers_service, write_games_service, write_streams
 from workers.config.config import kafka_settings

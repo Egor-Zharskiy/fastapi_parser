@@ -20,13 +20,14 @@ producer = LamodaProducer()
 @router.get('/update_categories_names',
             description='parse Lamoda to update information about categories in the database')
 async def update_categories_names(gender: SexEnum):
-    write_categories(gender.value)
+    producer.send_request('parse_categories_names_topic', gender.value, {"gender": gender.value})
+    await write_categories(gender.value)
     return JSONResponse(status_code=status.HTTP_200_OK, content={"data": "categories successfully updated"})
 
 
 @router.delete('/delete_category', description='delete category from database')
 async def delete_category(gender: SexEnum, category_name: str):
-    return delete_category_service(gender.value, category_name)
+    return await delete_category_service(gender.value, category_name)
 
 
 @router.get('/get_categories', response_model=Dict[str, Dict[str, List[Category]]])
@@ -58,27 +59,20 @@ async def get_all_prods(sex: SexEnum, category: str):
 
 @router.get('/products/', description='get product by brand name')
 async def get_products(brand: str):
-    data = get_products_by_brand_service(brand)
-
+    data = await get_products_by_brand_service(brand)
     return data
-
-
-# @router.get("/product/", response_model=Dict[str, Product], description="get full information about item")
-# async def get_product(url: str):
-#     data = await get_detailed_product(url)
-#     return {"data": data}
 
 
 @router.delete('/product')
 async def delete_item(item_id: str):
-    return delete_item_service(item_id)
+    return await delete_item_service(item_id)
 
 
 @router.post('/product')
 async def create_product(product: Product):
-    return create_product_service(product)
+    return await create_product_service(product)
 
 
 @router.put('/product/{product_id}')
 async def update_product(product_id: str, data: Product):
-    return update_product_service(product_id, data)
+    return await update_product_service(product_id, data)

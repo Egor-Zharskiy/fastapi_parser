@@ -14,6 +14,7 @@ async def start_all_consumers():
         twitch_consumer.consume_parse_streams(),
         lamoda_consumer.consume_parse_brands(),
         lamoda_consumer.consume_parse_category(),
+        lamoda_consumer.consume_parse_categories()
     )
 
 

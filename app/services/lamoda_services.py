@@ -86,9 +86,9 @@ def get_gender(gender: str):
                             detail="Incorrect gender: available: man, woman, kids")
 
 
-def write_categories(gender: str):
+async def write_categories(gender: str):
     try:
-        data = parse_categories(genders[gender])
+        data = await parse_categories(genders[gender])
         for item in data:
             query = {"name": item["name"], "sex": gender}
             db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
@@ -102,7 +102,7 @@ def write_categories(gender: str):
                             detail=f"An unexpected error occurred: {str(e)}")
 
 
-def delete_category_service(gender: str, name: str):
+async def delete_category_service(gender: str, name: str):
     deleted = db.delete_one('categories', {"name": name, "sex": gender})
     if deleted == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found")
@@ -122,12 +122,12 @@ def write_items_service(data: List[Product]):
         logger.error(f"Unexpected error occurred {str(e)}")
 
 
-def create_product_service(product: Product):
+async def create_product_service(product: Product):
     db.insert_one('items', product.dict())
     return JSONResponse(status_code=status.HTTP_200_OK, content="Product created")
 
 
-def update_product_service(product_id: str, data: Product):
+async def update_product_service(product_id: str, data: Product):
     product_data = data.dict()
 
     object_id = ObjectId(product_id)
@@ -137,12 +137,12 @@ def update_product_service(product_id: str, data: Product):
     return JSONResponse(status_code=status.HTTP_200_OK, content="Product updated successfully")
 
 
-def delete_item_service(product_id: str):
+async def delete_item_service(product_id: str):
     db.delete_one('items', {"_id": product_id})
     return JSONResponse(status_code=status.HTTP_200_OK, content="deleted successfully")
 
 
-def get_products_by_brand_service(brand: str) -> list:
+async def get_products_by_brand_service(brand: str) -> list:
     redis_data = redis_client.get_value(f"{brand} items")
     if redis_data:
         logger.info('data from redis')

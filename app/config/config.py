@@ -15,6 +15,11 @@ class AppSettings(BaseSettings):
     client_id: str = os.getenv('TWITCH_CLIENT_ID')
     credentials: str = os.getenv('TWITCH_GRANT_TYPE')
 
-
+class KafkaSettings(BaseSettings):
+    client_id: str = os.getenv('KAFKA_CLIENT_ID')
+    bootstrap_servers: str = os.getenv("BOOTSTRAP_SERVERS")
+    twitch_group_id: str = os.getenv('KAFKA_TWITCH_GROUP_ID')
+    kafka_group_id: str = os.getenv('KAFKA_LAMODA_GROUP_ID')
 
 settings = AppSettings()
+kafka_settings = KafkaSettings()

@@ -1,5 +1,5 @@
-from workers.config.config import kafka_settings
-from workers.config.kafka import KafkaProducer
+from app.config.config import kafka_settings
+from config.kafka import KafkaProducer
 
 
 class TwitchProducer:

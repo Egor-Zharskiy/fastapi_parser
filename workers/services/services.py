@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Union
 
 import bs4.element
@@ -5,16 +6,16 @@ import requests
 from bs4 import BeautifulSoup
 
 from fastapi.responses import JSONResponse
+from fastapi import status
 from pydantic import ValidationError
 
 from workers.database import MongoConnection
 from workers.schemas.schemas import Product, Brand
 from workers.schemas.schemas import Streamer, Game, Stream
-from fastapi import status
-import logging
-
-from workers.services.parsers.lamoda_parser import generate_next_page_url
+from workers.services.parsers.lamoda_parser import generate_next_page_url, parse_categories
 from workers.utils.utils import validate_price
+from workers.constants.lamoda import genders
+import logging
 
 db = MongoConnection()
 logger = logging.getLogger('worker services')
@@ -132,3 +133,16 @@ async def get_brand_url(gender: str, brand_name: str) -> Union[str]:
         logger.error('invalid data sent to server.')
 
     return f'https://lamoda.by{brand.url}'
+
+
+async def write_categories(gender: str):
+    try:
+        data = await parse_categories(genders[gender])
+        for item in data:
+            query = {"name": item["name"], "sex": gender}
+            db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
+    except TypeError as te:
+        logger.error(str(te))
+
+    except Exception as e:
+        logger.error(str(e))

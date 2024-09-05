@@ -25,7 +25,7 @@ async def get_streamers(streamers: StreamersRequest):
 
 @router.get('/streamer/{username}', description='get information about streamer by his username')
 async def get_streamer(username: str):
-    return get_streamer_service(username)
+    return await get_streamer_service(username)
 
 
 @router.post('/get_list_of_streamers',
@@ -45,22 +45,22 @@ async def streams_parser(request: Request):
 
 @router.get('/streams', description='get all saved to db streams')
 async def get_streams():
-    return get_streams_service()
+    return await get_streams_service()
 
 
 @router.delete('/streams', description='delete existing stream')
 async def delete_stream(stream_id: str):
-    return delete_stream_service(stream_id)
+    return await delete_stream_service(stream_id)
 
 
 @router.patch('/streams', description='update existing stream information in db')
 async def update_stream(stream_id: str, stream: StreamUpdate):
-    return update_stream_service(stream_id, stream)
+    return await update_stream_service(stream_id, stream)
 
 
 @router.post('/streams', description='create stream and insert into db')
 async def create_stream(stream: Stream):
-    return create_stream_service(stream)
+    return await create_stream_service(stream)
 
 
 @router.get('/parse_games')
@@ -71,14 +71,14 @@ async def parse_games(request: Request):
 
 @router.post('/game', description="save information about game into db")
 async def create_game(game: Game):
-    return save_game(game)
+    return await save_game(game)
 
 
 @router.patch('/game', description="update information about game")
 async def update_game(game_id: str, game: GameUpdate):
-    return update_game_service(game_id, game)
+    return await update_game_service(game_id, game)
 
 
 @router.delete('/game')
 async def delete_game(game_id: str):
-    return delete_game_service(game_id)
+    return await delete_game_service(game_id)

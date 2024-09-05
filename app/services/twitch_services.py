@@ -1,8 +1,6 @@
 import json
 from typing import List, Union
 
-from aiohttp import streamer
-
 from database import MongoConnection
 from schemas.twitch import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
@@ -16,13 +14,13 @@ db = MongoConnection()
 logger = logging.getLogger('Twitch Services')
 
 
-def write_streams(data: List[Stream]):
+async def write_streams(data: List[Stream]):
     for item in data:
         stream = item.to_dict()
         db.insert_or_update_data('streams', stream, {"id": stream['id']})
 
 
-def get_streams_service() -> Union[List[dict], List[Stream]]:
+async def get_streams_service() -> Union[List[dict], List[Stream]]:
     try:
         redis_data = redis_client.get_value("streams")
         if redis_data:
@@ -44,13 +42,13 @@ def get_streams_service() -> Union[List[dict], List[Stream]]:
                             detail=f"An unexpected error occurred: {str(e)}")
 
 
-def delete_stream_service(stream_id: str) -> JSONResponse:
+async def delete_stream_service(stream_id: str) -> JSONResponse:
     result = db.delete_one('streams', {'id': stream_id})
     return JSONResponse(status_code=status.HTTP_200_OK, content='deleted successfully') if result else JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND, content='Stream not found')
 
 
-def update_stream_service(stream_id: str, stream: StreamUpdate) -> Union[Stream, JSONResponse]:
+async def update_stream_service(stream_id: str, stream: StreamUpdate) -> Union[Stream, JSONResponse]:
     result = db.update_without_create('streams', {"id": stream_id}, stream.to_dict())
     if result.matched_count:
         return Stream(**db.find_one('streams', {'id': stream_id}))
@@ -58,7 +56,7 @@ def update_stream_service(stream_id: str, stream: StreamUpdate) -> Union[Stream,
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content='Stream not found')
 
 
-def create_stream_service(stream: Stream):
+async def create_stream_service(stream: Stream):
     db.insert_one('streams', stream.to_dict())
     return JSONResponse(status_code=status.HTTP_200_OK, content='created successfully')
 
@@ -98,7 +96,7 @@ def get_streamers_service(logins: List[str]):
                             detail=f"An unexpected error occurred: {str(e)}")
 
 
-def get_streamer_service(login: str):
+async def get_streamer_service(login: str):
     try:
         redis_data = redis_client.get_value(f"{login} streamer")
 
@@ -109,8 +107,14 @@ def get_streamer_service(login: str):
 
         else:
             query = {"login": login}
-            streamer = Streamer(**db.find_one('streamers', query))
-            redis_client.set_value(f"{login} streamer", json.dumps(streamer.dict(), default=str), ex=300)
+            raw_data = db.find_one('streamers', query)
+            print(raw_data)
+            if raw_data:
+                streamer = Streamer(**raw_data)
+                redis_client.set_value(f"{login} streamer", json.dumps(streamer.dict(), default=str), ex=300)
+            else:
+                return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content='Streamer not found')
+
             return streamer
 
     except Exception as e:
@@ -119,7 +123,7 @@ def get_streamer_service(login: str):
                             detail=f"An unexpected error occurred: {str(e)}")
 
 
-def write_games_service(data: List[Game]):
+async def write_games_service(data: List[Game]):
     try:
         for item in data:
             game = item.dict()
@@ -133,7 +137,7 @@ def write_games_service(data: List[Game]):
     return JSONResponse(status_code=status.HTTP_200_OK, content='Parsed successfully')
 
 
-def save_game(game: Game):
+async def save_game(game: Game):
     try:
         db.insert_one('games', game.dict())
     except Exception:
@@ -142,8 +146,7 @@ def save_game(game: Game):
     return JSONResponse(status_code=status.HTTP_200_OK, content='Saved to DB successfully')
 
 
-def update_game_service(game_id: str, game: GameUpdate):
-    print(game)
+async def update_game_service(game_id: str, game: GameUpdate):
     result = db.update_without_create('games', {"id": game_id}, game.dict())
     if result.matched_count:
         return Game(**db.find_one('games', {'id': game_id}))
@@ -151,7 +154,7 @@ def update_game_service(game_id: str, game: GameUpdate):
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content='Game not found')
 
 
-def delete_game_service(game_id: str):
+async def delete_game_service(game_id: str):
     result = db.delete_one('games', {'id': game_id})
     return JSONResponse(status_code=status.HTTP_200_OK, content='deleted successfully') if result else JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND, content='Game not found')

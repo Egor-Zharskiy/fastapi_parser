@@ -15,36 +15,20 @@ import logging
 logger = logging.getLogger("Lamoda Services")
 
 
-def parse_categories(url: str) -> list:
-    response = requests.get(url)
-    response.raise_for_status()
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    nav_panel = soup.find('nav', {"class": "d-header-topmenu"})
-    categories = []
-    for el in nav_panel.find_all('a'):
-        cat_name = el.get_text(strip=True)
-        categories.append({"name": cat_name, "url": el['href']}) if cat_name != '' else None
+async def parse_categories(url: str) -> list:
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            text = await response.text()
+            soup = BeautifulSoup(text, 'html.parser')
+            nav_panel = soup.find('nav', {"class": "d-header-topmenu"})
+            categories = []
+            for el in nav_panel.find_all('a'):
+                cat_name = el.get_text(strip=True)
+                categories.append({"name": cat_name, "url": el['href']}) if cat_name != '' else None
     return categories
 
-
-# async def get_products_from_page(url) -> list:
-#     links = []
-#     connector = aiohttp.TCPConnector(ssl=False)
-#     async with aiohttp.ClientSession(connector=connector) as session:
-#         async with session.get(url) as response:
-#             response.raise_for_status()
-#             text = await response.text()
-#
-#         soup = BeautifulSoup(text, 'html.parser')
-#         cards = soup.find_all('div', class_='x-product-card__card')
-#
-#         for card in cards:
-#             link_tag = card.find('a', class_='x-product-card__link')
-#             if link_tag and 'href' in link_tag.attrs:
-#                 links.append(link_tag['href'])
-#
-#     return links
 
 async def get_products_from_page(url) -> list:
     connector = aiohttp.TCPConnector(ssl=False)
@@ -56,10 +40,10 @@ async def get_products_from_page(url) -> list:
         soup = BeautifulSoup(text, 'html.parser')
         cards = soup.find_all('div', class_='x-product-card__card')
 
-    return get_products_info(cards)
+    return await get_products_info(cards)
 
 
-def get_products_info(cards: List[bs4.element.Tag]) -> List[Product]:
+async def get_products_info(cards: List[bs4.element.Tag]) -> List[Product]:
     products = []
 
     for card in cards:
@@ -113,24 +97,6 @@ async def get_category_products(url):
     return products
 
 
-# async def get_category_products(url):
-#     product_links = []
-#     page = 0
-#
-#     while True:
-#         curr_page = await generate_next_page_url(url, page)
-#         page_products = await get_products_from_page(curr_page)
-#         if len(page_products) != 0:
-#             product_links.extend(page_products)
-#             page += 1
-#         else:
-#             break
-#
-#     tasks = [get_detailed_product(f"https://lamoda.by{link}") for link in product_links]
-#     all_products = await asyncio.gather(*tasks)
-#     return all_products
-
-
 async def get_detailed_product(url) -> Product:
     connector = aiohttp.TCPConnector(ssl=False)
     async with aiohttp.ClientSession(connector=connector) as session:
@@ -176,7 +142,7 @@ async def get_detailed_product(url) -> Product:
         logger.error("Failed to parse information about the product")
 
     except Exception as e:
-       logger.error(f"Unexpected error occurred {str(e)}")
+        logger.error(f"Unexpected error occurred {str(e)}")
 
 
 def parse_brands(url: str) -> list:
