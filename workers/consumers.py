@@ -19,4 +19,5 @@ async def start_all_consumers():
 
 
 if __name__ == "__main__":
+    print('consumers running')
     asyncio.run(start_all_consumers())

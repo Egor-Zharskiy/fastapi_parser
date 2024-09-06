@@ -18,7 +18,9 @@ producer = TwitchProducer()
 
 @router.post('/parse_streamers', description='get the list of the streamers by given list of logins')
 async def get_streamers(streamers: StreamersRequest):
-    producer.send_streamers_request(streamers.list_of_streamers)
+    producer.send_request('parse_streamers_topic', 'streamers',
+                          {"streamers": streamers.list_of_streamers})
+    # producer.send_streamers_request(streamers.list_of_streamers)
 
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to kafka')
 
@@ -36,11 +38,10 @@ async def get_list_of_streamers(streamers: StreamersRequest):
 
 @router.get('/parse_streams',
             description="Get streams with parameters: user_login, user_id, language, game_id, type."
-                        "Query example: &user_id=123&user_login=buster")
+                        "Query example: user_id=123&user_login=buster")
 async def streams_parser(request: Request):
-    producer.send_streams_request(str(request.query_params))
+    producer.send_request('parse_streams_topic', 'streams', {"params": str(request.query_params)})
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to kafka')
-    # return parse_streams(get_token(), str(request.query_params))
 
 
 @router.get('/streams', description='get all saved to db streams')
@@ -65,7 +66,7 @@ async def create_stream(stream: Stream):
 
 @router.get('/parse_games')
 async def parse_games(request: Request):
-    producer.send_games_request(str(request.query_params))
+    producer.send_request('parse_games_topic', str(request.query_params), {"query": str(request.query_params)})
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to kafka')
 
 
