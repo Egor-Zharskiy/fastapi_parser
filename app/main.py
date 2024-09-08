@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 
-from config.error_controller import error_controller
-from routes.lamoda import router as lamoda_router
-from routes.twitch import router as twitch_router
-from config.config import settings
+from app.config.error_controller import error_controller
+from app.routes.lamoda import router as lamoda_router
+from app.routes.twitch import router as twitch_router
+from app.config.config import settings
 
 app = FastAPI(title=settings.app_name)
 

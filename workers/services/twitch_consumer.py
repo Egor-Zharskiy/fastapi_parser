@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from workers.services.parsers.twitch_parser import parse_streamers, parse_streams, game_parser, get_token
@@ -69,7 +70,6 @@ class TwitchConsumer:
                 await consumer.commit()
         finally:
             await consumer.stop()
-
 
     async def process_streamers(self, data):
         streamers_data = await parse_streamers(get_token(), data['streamers'])

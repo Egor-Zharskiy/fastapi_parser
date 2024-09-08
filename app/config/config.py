@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings
 
 load_dotenv()
 
+print(os.getenv('DB_HOST'), "EGORA")
 
 class AppSettings(BaseSettings):
     app_name: str = "Lamoda+Twitch Parser"
@@ -14,6 +15,11 @@ class AppSettings(BaseSettings):
     secret_key: str = os.getenv('TWITCH_SECRET_KEY')
     client_id: str = os.getenv('TWITCH_CLIENT_ID')
     credentials: str = os.getenv('TWITCH_GRANT_TYPE')
+    kafka_db_host: str = os.getenv("KAFKA_DB_PORT")
+
+
+    class Config:
+        env_file = "../env"
 
 class KafkaSettings(BaseSettings):
     client_id: str = os.getenv('KAFKA_CLIENT_ID')

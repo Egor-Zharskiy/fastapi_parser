@@ -1,16 +1,13 @@
 import json
 from typing import Dict, List, Optional, Union
-from datetime import datetime
 from bson import ObjectId
 
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 
-from database import MongoConnection
-from services.redis_service import redis_client
-from workers.services.parsers.lamoda_parser import parse_categories
-from schemas.lamoda import Category, Brand, Product, SexEnum
-from app.constants.lamoda import genders
+from app.database import MongoConnection
+from app.services.redis_service import redis_client
+from app.schemas.lamoda import Category, Brand, Product, SexEnum
 
 import logging
 
@@ -24,14 +21,18 @@ async def get_categories_service() -> list:
     for data in raw_data:
         try:
             category = Category(**data)
+            print(category)
             categories.append(category)
         except Exception as e:
+            print("ERROR!!!")
+            print(str(e))
             logger.error(str(e))
-
+    print(categories, 'categories123123')
     return categories
 
 
 async def get_cat_names() -> Dict[str, List[Category]]:
+    print('getting categories names')
     data = await get_categories_service()
     cat_names = {'man': [], 'woman': [], 'kids': []}
     for el in data:
@@ -67,14 +68,15 @@ async def get_brands_service(gender: Optional[str] = None) -> Optional[Union[lis
 
 async def get_brand_url(gender: str, brand_name: str) -> Union[str, Exception]:
     try:
+
         raw_data = db.find_one('brands', {"sex": gender, "name": brand_name.lower()})
         brand = Brand(**raw_data)
+        return f'https://lamoda.by{brand.url}'
+
 
     except TypeError as e:
         logger.error(str(e))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='invalid data sent to server.')
 
-    return f'https://lamoda.by{brand.url}'
 
 
 def get_gender(gender: str):
@@ -86,20 +88,20 @@ def get_gender(gender: str):
                             detail="Incorrect gender: available: man, woman, kids")
 
 
-async def write_categories(gender: str):
-    try:
-        data = await parse_categories(genders[gender])
-        for item in data:
-            query = {"name": item["name"], "sex": gender}
-            db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
-    except TypeError as te:
-        logger.error(str(te))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"TypeError: {str(te)}")
-
-    except Exception as e:
-        logger.error(str(e))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail=f"An unexpected error occurred: {str(e)}")
+# async def write_categories(gender: str):
+#     try:
+#         data = await parse_categories(genders[gender])
+#         for item in data:
+#             query = {"name": item["name"], "sex": gender}
+#             db.update_data("categories", query, {**item, "sex": gender, "created_at": datetime.now()})
+#     except TypeError as te:
+#         logger.error(str(te))
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"TypeError: {str(te)}")
+#
+#     except Exception as e:
+#         logger.error(str(e))
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#                             detail=f"An unexpected error occurred: {str(e)}")
 
 
 async def delete_category_service(gender: str, name: str):
@@ -116,7 +118,7 @@ def write_items_service(data: List[Product]):
             product = item.dict()
             db.insert_or_update_data('items', product,
                                      {"product_name": product["product_name"],
-                                      "name_model": product["name_model"],
+                                      "name_model": product["name_model"].lower(),
                                       "description": product["description"]})
     except Exception as e:
         logger.error(f"Unexpected error occurred {str(e)}")
@@ -150,7 +152,7 @@ async def get_products_by_brand_service(brand: str) -> list:
         data = [Product(**product) for product in raw_data]
     else:
         logger.info('data from db')
-        raw_data = list(db.find_data('items', {"product_name": brand}))
+        raw_data = list(db.find_data('items', {"name_model": brand}))
         data = [Product(**product) for product in raw_data]
         redis_client.set_value(f"{brand} items", json.dumps([product.dict() for product in data]), ex=300)
 

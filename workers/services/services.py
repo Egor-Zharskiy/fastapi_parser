@@ -1,6 +1,8 @@
+from cgi import parse
 from datetime import datetime
 from typing import List, Union
 
+import aiohttp
 import bs4.element
 import requests
 from bs4 import BeautifulSoup
@@ -12,7 +14,7 @@ from pydantic import ValidationError
 from workers.database import MongoConnection
 from workers.schemas.schemas import Product, Brand
 from workers.schemas.schemas import Streamer, Game, Stream
-from workers.services.parsers.lamoda_parser import generate_next_page_url, parse_categories
+from workers.services.parsers.lamoda_parser import generate_next_page_url, parse_categories, parse_brands
 from workers.utils.utils import validate_price
 from workers.constants.lamoda import genders
 import logging
@@ -67,12 +69,14 @@ async def write_streams(data: List[Stream]):
 
 
 async def get_products_from_page(url) -> list:
-    response = requests.get(url)
-    text = response.text
-
-    soup = BeautifulSoup(text, 'html.parser')
-    cards = soup.find_all('div', class_='x-product-card__card')
-    return get_products_info(cards)
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            text = await response.text()
+            soup = BeautifulSoup(text, 'html.parser')
+            cards = soup.find_all('div', class_='x-product-card__card')
+            return get_products_info(cards)
 
 
 def get_products_info(cards: List[bs4.element.Tag]):
@@ -108,14 +112,19 @@ async def get_category_products(url):
     products = []
     page = 0
 
-    while True:
-        curr_page = await generate_next_page_url(url, page)
-        page_products = await get_products_from_page(curr_page)
-        if len(page_products) != 0:
-            products.extend(page_products)
-            page += 1
-        else:
-            break
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            text = await response.text()
+            while True:
+                curr_page = await generate_next_page_url(url, page)
+                page_products = await get_products_from_page(curr_page)
+                if len(page_products) != 0:
+                    products.extend(page_products)
+                    page += 1
+                else:
+                    break
 
     logger.info(products)
     logger.info(f"number of parsed products: {len(products)}")
@@ -129,10 +138,11 @@ async def get_brand_url(gender: str, brand_name: str) -> Union[str]:
         raw_data = db.find_one('brands', {"sex": gender, "name": brand_name.lower()})
         brand = Brand(**raw_data)
 
-    except TypeError:
-        logger.error('invalid data sent to server.')
+        return f'https://lamoda.by{brand.url}'
 
-    return f'https://lamoda.by{brand.url}'
+    except TypeError as e:
+        print(str(e))
+        logger.error(f'invalid data sent to server. {str(e)}')
 
 
 async def write_categories(gender: str):
@@ -146,3 +156,8 @@ async def write_categories(gender: str):
 
     except Exception as e:
         logger.error(str(e))
+
+
+def write_brands_names(brands: List):
+    for el in brands:
+        db.insert_one('brands', el)

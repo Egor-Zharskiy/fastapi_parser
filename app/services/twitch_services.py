@@ -1,13 +1,13 @@
 import json
 from typing import List, Union
 
-from database import MongoConnection
-from schemas.twitch import Stream, StreamUpdate, Streamer, Game, GameUpdate
+from app.database import MongoConnection
+from app.schemas.twitch import Stream, StreamUpdate, Streamer, Game, GameUpdate
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 import logging
 
-from services.redis_service import redis_client
+from app.services.redis_service import redis_client
 
 db = MongoConnection()
 
@@ -108,7 +108,6 @@ async def get_streamer_service(login: str):
         else:
             query = {"login": login}
             raw_data = db.find_one('streamers', query)
-            print(raw_data)
             if raw_data:
                 streamer = Streamer(**raw_data)
                 redis_client.set_value(f"{login} streamer", json.dumps(streamer.dict(), default=str), ex=300)

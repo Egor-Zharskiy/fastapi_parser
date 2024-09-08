@@ -1,9 +1,9 @@
 from fastapi import APIRouter, status, Request
 from fastapi.responses import JSONResponse
 
-from services.twitch_producer import TwitchProducer
-from schemas.twitch import Stream, StreamUpdate, StreamersRequest, Game, GameUpdate
-from services.twitch_services import get_streams_service, delete_stream_service, update_stream_service, \
+from app.services.twitch_producer import TwitchProducer
+from app.schemas.twitch import Stream, StreamUpdate, StreamersRequest, Game, GameUpdate
+from app.services.twitch_services import get_streams_service, delete_stream_service, update_stream_service, \
     create_stream_service, \
     get_streamers_service, save_game, update_game_service, \
     delete_game_service, get_streamer_service
@@ -64,7 +64,7 @@ async def create_stream(stream: Stream):
     return await create_stream_service(stream)
 
 
-@router.get('/parse_games')
+@router.get('/parse_games', description='parse games by game id, name and igdb_id')
 async def parse_games(request: Request):
     producer.send_request('parse_games_topic', str(request.query_params), {"query": str(request.query_params)})
     return JSONResponse(status_code=status.HTTP_200_OK, content='Request sent to kafka')

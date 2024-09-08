@@ -54,6 +54,7 @@ class LamodaConsumer:
 
     async def consume_parse_categories(self):
         self.logger.info('categories names consumer')
+        print('categories names consumer')
 
         consumer = AIOKafkaConsumer(
             'parse_categories_names_topic',

@@ -1,5 +1,5 @@
 from app.config.config import kafka_settings
-from config.kafka import KafkaProducer
+from app.config.kafka import KafkaProducer
 import logging
 
 

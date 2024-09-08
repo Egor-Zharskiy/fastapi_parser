@@ -8,7 +8,7 @@ from app.config.config import settings
 
 class MongoConnection:
     def __init__(self):
-        self.client = MongoClient(settings.db_host, int(settings.db_port))
+        self.client = MongoClient(settings.kafka_db_host, int(settings.db_port))
         self.db = self.client[settings.db_name]
 
     def create_stream_indexes(self):
